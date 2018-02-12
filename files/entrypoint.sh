@@ -44,4 +44,5 @@ if [ ! -e ${HOME}/.gnupg ]; then
 
 fi
 
-exec gosu aptly "$@"
+exec gosu aptly aptly serve --listen=0.0.0.0:8080 -config=/etc/aptly.conf &
+exec gosu aptly aptly api serve --listen 0.0.0.0:8000 -no-lock=true
