@@ -12,18 +12,20 @@ RUN apt-get -q update                     \
                           gpg             \
                           wget            \
                           xz-utils        \
-                          gosu            \
                           ubuntu-archive-keyring \
     && echo "deb http://repo.aptly.info/ squeeze main" > /etc/apt/sources.list.d/aptly.list \
-    && apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 9E3E53F19C7DE460 \
-    && apt-get update \
-    && apt-get -y install aptly=${APTLY_VERSION} \
+    && apt-get --allow-unauthenticated update \
+    && apt-get --allow-unauthenticated -y install aptly=${APTLY_VERSION} \
     && apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 COPY files/aptly.conf /etc/aptly.conf
 COPY files/entrypoint.sh /entrypoint.sh
 
-RUN chmod +x /entrypoint.sh
+RUN chmod +x /entrypoint.sh \
+&& groupadd --system -g 501 aptly \
+&& useradd --system --shell /bin/bash -u 501 -g aptly -d /var/lib/aptly -m aptly 1>/dev/null 2>/dev/null
+
+USER 501:501
 
 VOLUME ["/var/lib/aptly"]
 EXPOSE 8000

@@ -1,7 +1,5 @@
 #!/bin/bash -e
 
-USER_ID=${LOCAL_USER_ID:-501}
-GROUP_ID=${LOCAL_GROUP_ID:-501}
 GPG_BINARY=${GPG_BINARY:-gpg1}
 # Syslog numeric log level, see https://tools.ietf.org/html/rfc5424
 # Defaults to warning
@@ -28,11 +26,7 @@ log_info() {
     fi
 }
 
-log_info "Creating user aptly with UID $USER_ID"
-getent group aptly >/dev/null || groupadd --system -g $GROUP_ID aptly
-getent passwd aptly >/dev/null || useradd --system --shell /bin/bash -u $USER_ID -g aptly -d ${HOME} -m aptly 1>/dev/null 2>/dev/null
-
-if [ $(stat -c '%u' ${HOME}) != $USER_ID ]; then
+if [ $(stat -c '%u' ${HOME}) != $(id -u aptly) ]; then
     log_warn "Fixing ${HOME} permissions.."
     chown -R aptly:aptly ${HOME}
 fi
@@ -40,9 +34,9 @@ fi
 if [ ! -e ${HOME}/.gnupg ]; then
     log_warn "Generating GPG keypair.."
 
-    gosu aptly bash -c "$GPG_BINARY --import /.gpg_secret_key"
+    $GPG_BINARY --import /.gpg_secret_key
 
 fi
 
-exec gosu aptly aptly serve --listen=0.0.0.0:8080 -config=/etc/aptly.conf &
-exec gosu aptly aptly api serve --listen 0.0.0.0:8000 -no-lock=true
+exec aptly serve --listen=0.0.0.0:8080 -config=/etc/aptly.conf &
+exec aptly api serve --listen 0.0.0.0:8000 -no-lock=true
